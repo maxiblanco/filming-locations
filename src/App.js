@@ -6,6 +6,19 @@ import {
   InfoWindow,
 } from '@react-google-maps/api';
 import { formatRelative } from 'date-fns';
+import usePlacesAutocomplete, {
+  getGeocode,
+  getLatLng,
+} from 'use-places-autocomplete';
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxPopover,
+  ComboboxList,
+  ComboboxOption,
+  ComboboxOptionText,
+} from '@reach/combobox';
+import '@reach/combobox/styles.css';
 import mapStyles from './mapStyles';
 // Components
 import CameraIcon from './components/CameraIcon/index';
@@ -17,6 +30,7 @@ const mapContainerStyle = {
   height: '100vh',
 };
 
+// Buenos Aires
 const center = {
   lat: -34.61315,
   lng: -58.37723,
@@ -61,13 +75,17 @@ const App = () => {
       <h1 className='absolute z-10 top-0 left-0 p-0 m-0 mt-4 ml-4 text-2xl'>
         Film Here <CameraIcon />
       </h1>
+
+      <Search />
+
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={10}
         center={center}
         options={options}
         onClick={handleMapClick}
-        onLoad={onMapLoad}>
+        onLoad={onMapLoad}
+      >
         {markers.map((marker) => (
           <Marker
             key={marker.time.toISOString()}
@@ -89,15 +107,56 @@ const App = () => {
             position={{ lat: selected.lat, lng: selected.lng }}
             onCloseClick={() => {
               setSelected(null);
-            }}>
+            }}
+          >
             <div>
               <h2>Hi Peeps</h2>
               <p>This is a good place to shoot!</p>
-              <p>Verified last {formatRelative(selected.time, new Date())}</p>
+              <p>
+                Verified last{' '}
+                {formatRelative(selected.time, new Date())}
+              </p>
             </div>
           </InfoWindow>
         ) : null}
       </GoogleMap>
+    </div>
+  );
+};
+
+const Search = () => {
+  const {
+    ready,
+    value,
+    suggestions: { status, data },
+    setValue,
+    clearSuggestions,
+  } = usePlacesAutocomplete({
+    requestOptions: {
+      location: { lat: () => -34.61315, lng: () => -58.37723 },
+      radius: 200 * 1000,
+    },
+  });
+  return (
+    <div className='absolute z-10 top-0 p-0 m-0 mt-4 ml-4 text-xl'>
+      <Combobox
+        onSelect={(address) => {
+          console.log(address);
+        }}
+      >
+        <ComboboxInput
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={!ready}
+          placeholder='Enter an address...'
+        />
+        <ComboboxPopover>
+          {status === 'OK' &&
+            data.map(({ id, description }) => (
+              <ComboboxOption key={id} value={description} />
+            ))}
+        </ComboboxPopover>
+      </Combobox>
     </div>
   );
 };
