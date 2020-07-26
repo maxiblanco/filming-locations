@@ -44,6 +44,7 @@ const options = {
 
 const App = () => {
   const { isLoaded, loadError } = useLoadScript({
+    /* Google API Key must be enabled for Maps and Places API */
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries,
   });
@@ -66,17 +67,26 @@ const App = () => {
     mapRef.current = map;
   }, []);
 
+  const panTo = useCallback(({ lat, lng }) => {
+    mapRef.current.panTo({ lat, lng });
+    mapRef.current.setZoom(14);
+  }, []);
+
   if (loadError) return 'Error loading map.';
 
   if (!isLoaded) return 'Loading map...';
 
   return (
     <div>
-      <h1 className='absolute z-10 top-0 left-0 p-0 m-0 mt-4 ml-4 text-2xl'>
-        Film Here <CameraIcon />
-      </h1>
+      <div className="relative flex justify-center w-full">
+        <h1 className="absolute z-10 top-0 left-0 p-0 m-0 mt-4 ml-4 text-2xl">
+          Film Here <CameraIcon />
+        </h1>
 
-      <Search />
+        <Search panTo={panTo} />
+
+        <Locate panTo={panTo} />
+      </div>
 
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
@@ -84,8 +94,7 @@ const App = () => {
         center={center}
         options={options}
         onClick={handleMapClick}
-        onLoad={onMapLoad}
-      >
+        onLoad={onMapLoad}>
         {markers.map((marker) => (
           <Marker
             key={marker.time.toISOString()}
@@ -107,8 +116,7 @@ const App = () => {
             position={{ lat: selected.lat, lng: selected.lng }}
             onCloseClick={() => {
               setSelected(null);
-            }}
-          >
+            }}>
             <div>
               <h2>Hi Peeps</h2>
               <p>This is a good place to shoot!</p>
@@ -124,7 +132,7 @@ const App = () => {
   );
 };
 
-const Search = () => {
+const Search = ({ panTo }) => {
   const {
     ready,
     value,
@@ -138,26 +146,48 @@ const Search = () => {
     },
   });
   return (
-    <div className='absolute z-10 top-0 p-0 m-0 mt-4 ml-4 text-xl'>
+    <div className="absolute leading-loose z-10 top-0 p-0 mt-4 w-1/3 text-xl">
       <Combobox
-        onSelect={(address) => {
-          console.log(address);
-        }}
-      >
+        onSelect={async (address) => {
+          setValue(address, false);
+          clearSuggestions();
+
+          try {
+            const results = await getGeocode({ address });
+            const { lat, lng } = await getLatLng(results[0]);
+            panTo({ lat, lng });
+          } catch (error) {
+            console.log('error!');
+          }
+        }}>
         <ComboboxInput
+          className="w-full"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={!ready}
-          placeholder='Enter an address...'
+          placeholder="Enter an address..."
         />
         <ComboboxPopover>
           {status === 'OK' &&
             data.map(({ id, description }) => (
-              <ComboboxOption key={id} value={description} />
+              <ComboboxOption
+                key={'address-' + id}
+                value={description}
+              />
             ))}
         </ComboboxPopover>
       </Combobox>
     </div>
+  );
+};
+
+const Locate = ({ panTo }) => {
+  return (
+    <button
+      className="absolute z-10 top-0 right-0 p-0 m-0 mt-4 mr-4 w-12 h-12"
+      onClick={() => console.log('Click locate')}>
+      <img src="compass.svg" alt="compass" />
+    </button>
   );
 };
 
