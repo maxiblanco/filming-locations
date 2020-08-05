@@ -16,7 +16,6 @@ import {
   ComboboxPopover,
   ComboboxList,
   ComboboxOption,
-  ComboboxOptionText,
 } from '@reach/combobox';
 import '@reach/combobox/styles.css';
 import mapStyles from './mapStyles';
@@ -161,20 +160,22 @@ const Search = ({ panTo }) => {
           }
         }}>
         <ComboboxInput
-          className="w-full"
+          className="w-full px-2"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={!ready}
           placeholder="Enter an address..."
         />
         <ComboboxPopover>
-          {status === 'OK' &&
-            data.map(({ id, description }) => (
-              <ComboboxOption
-                key={'address-' + id}
-                value={description}
-              />
-            ))}
+          <ComboboxList>
+            {status === 'OK' &&
+              data.map(({ id, description }) => (
+                <ComboboxOption
+                  key={'address-' + id}
+                  value={description}
+                />
+              ))}
+          </ComboboxList>
         </ComboboxPopover>
       </Combobox>
     </div>
@@ -182,11 +183,35 @@ const Search = ({ panTo }) => {
 };
 
 const Locate = ({ panTo }) => {
+  const handleLocateClick = () => {
+    const onLocationSuccess = (position) => {
+      panTo({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+    };
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0,
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        onLocationSuccess,
+        () => {},
+        options
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+    }
+  };
   return (
     <button
       className="absolute z-10 top-0 right-0 p-0 m-0 mt-4 mr-4 w-12 h-12"
-      onClick={() => console.log('Click locate')}>
-      <img src="compass.svg" alt="compass" />
+      onClick={handleLocateClick}>
+      <img src="compass.svg" alt="compass - Locate me" />
     </button>
   );
 };
